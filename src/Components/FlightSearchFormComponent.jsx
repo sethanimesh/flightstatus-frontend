@@ -8,6 +8,7 @@ const FlightSearchForm = () => {
   const [flightData, setFlightData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [weatherData, setWeatherData] = useState(null);
 
   const handleSearch = async (event) => {
     event.preventDefault();
@@ -22,8 +23,24 @@ const FlightSearchForm = () => {
             flight_iata: flight_iata,
           },
         });
+
         if (response.data && response.data.data && response.data.data.length > 0) {
-          setFlightData(response.data.data[0]);  // Assume we want the first result
+          const flightInfo = response.data.data[0];  
+          setFlightData(flightInfo);
+
+          // Extract city name from the flight data
+          console.log(flightInfo);
+
+          // Now, use the city name to fetch the weather data
+          const weatherResponse = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
+            params: {
+              appid: process.env.REACT_APP_WEATHER_API_KEY, 
+              q: 'mumbai',
+              units: 'metric' 
+            }
+          });
+          
+          setWeatherData(weatherResponse.data);
         } else {
           setError('No flight data found');
           setFlightData(null);
@@ -86,6 +103,16 @@ const FlightSearchForm = () => {
           <p><strong>Scheduled Departure Time:</strong> {flightData.departure.scheduled}</p>
           <p><strong>Scheduled Arrival Time:</strong> {flightData.arrival.scheduled}</p>
           <p><strong>Status:</strong> {flightData.flight_status}</p>
+        </div>
+      )}
+      
+      {weatherData && (
+        <div>
+          <h2>Weather in {weatherData.name}:</h2>
+          <p><strong>Temperature:</strong> {weatherData.main.temp} °C</p>
+          <p><strong>Weather:</strong> {weatherData.weather[0].description}</p>
+          <p><strong>Humidity:</strong> {weatherData.main.humidity}%</p>
+          <p><strong>Wind Speed:</strong> {weatherData.wind.speed} m/s</p>
         </div>
       )}
     </div>
