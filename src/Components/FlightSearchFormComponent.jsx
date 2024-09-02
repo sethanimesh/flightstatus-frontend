@@ -1,57 +1,95 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
+import axios from 'axios';
 
-export default function FlightSearchFormComponent({onSearch}){
-    const[carrierCode, setCarrierCode] = useState('')
-    const[flightNumber, setFlightNumber] = useState('')
-    const[scheduledDepartureDate, setScheduledDepartureDate] = useState('')
+const FlightSearchForm = () => {
+  const [carrierCode, setCarrierCode] = useState('');
+  const [flightNumber, setFlightNumber] = useState('');
+  const [scheduledDepartureDate, setScheduledDepartureDate] = useState('');
+  const [flightData, setFlightData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    const handleSearch = (event)=>{
-        event.preventDefault();
-        if (carrierCode && flightNumber && scheduledDepartureDate){
-            onSearch({carrierCode, flightNumber, scheduledDepartureDate});
-            
+  const handleSearch = async (event) => {
+    event.preventDefault();
+    if (carrierCode && flightNumber && scheduledDepartureDate) {
+      setLoading(true);
+      setError(null);
+      try {
+        const flight_iata = `${carrierCode}${flightNumber}`;
+        const response = await axios.get(`https://api.aviationstack.com/v1/flights`, {
+          params: {
+            access_key: process.env.REACT_APP_API_KEY,
+            flight_iata: flight_iata,
+          },
+        });
+        if (response.data && response.data.data && response.data.data.length > 0) {
+          setFlightData(response.data.data[0]);  // Assume we want the first result
+        } else {
+          setError('No flight data found');
+          setFlightData(null);
         }
-        else{
-            alert("Enter all the details!");
-        }
+      } catch (err) {
+        setError('Failed to fetch flight data');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      alert('Please fill out all fields.');
     }
+  };
 
-    return (
-        <form onSubmit={handleSearch}>
-            <div>
-                <label>Carrier Code</label>
-                <input 
-                    type='text' 
-                    id="carrierCode" 
-                    value={carrierCode} 
-                    onChange={(e)=>setCarrierCode(e.target.value)} 
-                    required
-                >    
-                </input>
-            </div>
-            <div>
-            <label>Flight Number</label>
-                <input 
-                    type='text' 
-                    id="flightNumber" 
-                    value={flightNumber} 
-                    onChange={(e)=>setFlightNumber(e.target.value)} 
-                    required
-                >    
-                </input>
-            </div>
-            <div>
-            <label>Scheduled Departure Date</label>
-                <input 
-                    type='text' 
-                    id="scheduledDepartureDate" 
-                    value={scheduledDepartureDate} 
-                    onChange={(e)=>setScheduledDepartureDate(e.target.value)} 
-                    required
-                >    
-                </input>
-            </div>
-            <button type="submit">Search Flight</button>
-        </form>
-    )
-}
+  return (
+    <div>
+      <form onSubmit={handleSearch}>
+        <div>
+          <label htmlFor="carrierCode">Carrier Code:</label>
+          <input
+            type="text"
+            id="carrierCode"
+            value={carrierCode}
+            onChange={(e) => setCarrierCode(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="flightNumber">Flight Number:</label>
+          <input
+            type="text"
+            id="flightNumber"
+            value={flightNumber}
+            onChange={(e) => setFlightNumber(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="scheduledDepartureDate">Scheduled Departure Date:</label>
+          <input
+            type="date"
+            id="scheduledDepartureDate"
+            value={scheduledDepartureDate}
+            onChange={(e) => setScheduledDepartureDate(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">Search Flight</button>
+      </form>
+
+      {loading && <p>Loading...</p>}
+      {error && <p>{error}</p>}
+      {flightData && (
+        <div>
+          <h2>Flight Details:</h2>
+          <p><strong>Airline:</strong> {flightData.airline.name}</p>
+          <p><strong>Flight Number:</strong> {flightData.flight.number}</p>
+          <p><strong>Departure Airport:</strong> {flightData.departure.airport}</p>
+          <p><strong>Arrival Airport:</strong> {flightData.arrival.airport}</p>
+          <p><strong>Scheduled Departure Time:</strong> {flightData.departure.scheduled}</p>
+          <p><strong>Scheduled Arrival Time:</strong> {flightData.arrival.scheduled}</p>
+          <p><strong>Status:</strong> {flightData.flight_status}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FlightSearchForm;
