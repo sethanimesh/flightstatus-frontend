@@ -31,7 +31,6 @@ const FlightSearchForm = () => {
           setFlightData(flightInfo);
 
           // Extract the city for weather data (for simplicity, using arrival city)
-          const cityName = flightInfo.arrival.airport; 
           console.log(flightInfo);
 
           // Fetch weather data using the city name
