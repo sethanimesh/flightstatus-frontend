@@ -9,12 +9,14 @@ const FlightSearchForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
+  const [predictionResult, setPredictionResult] = useState(null);
 
   const handleSearch = async (event) => {
     event.preventDefault();
     if (carrierCode && flightNumber && scheduledDepartureDate) {
       setLoading(true);
       setError(null);
+      setPredictionResult(null); // Clear previous result
       try {
         const flight_iata = `${carrierCode}${flightNumber}`;
         const response = await axios.get(`https://api.aviationstack.com/v1/flights`, {
@@ -28,19 +30,31 @@ const FlightSearchForm = () => {
           const flightInfo = response.data.data[0];  
           setFlightData(flightInfo);
 
-          // Extract city name from the flight data
+          // Extract the city for weather data (for simplicity, using arrival city)
+          const cityName = flightInfo.arrival.airport; 
           console.log(flightInfo);
 
-          // Now, use the city name to fetch the weather data
+          // Fetch weather data using the city name
           const weatherResponse = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
             params: {
-              appid: process.env.REACT_APP_WEATHER_API_KEY, 
+              appid: process.env.REACT_APP_WEATHER_API_KEY,
               q: 'mumbai',
-              units: 'metric' 
+              units: 'metric'
             }
           });
-          
           setWeatherData(weatherResponse.data);
+
+          // Now send the POST request for flight delay prediction
+          const postData = {
+            carrier_code: carrierCode,  
+            scheduled_elapsed_time: flightInfo.departure.scheduled_elapsed_time || 120,  
+            delay_weather: 1, // Default value (can be adjusted based on logic)
+            HourlyPrecipitation_x: weatherResponse.data.main.precipitation || 3.16,  
+            HourlyWindSpeed_x: weatherResponse.data.wind.speed || 0.99
+          };
+          console.log('POST Data:', postData);
+          const predictionResponse = await axios.post('https://flight-delay-f56602e85b27.herokuapp.com/flight-prediction', postData);
+          setPredictionResult(predictionResponse.data);
         } else {
           setError('No flight data found');
           setFlightData(null);
@@ -93,6 +107,7 @@ const FlightSearchForm = () => {
 
       {loading && <p>Loading...</p>}
       {error && <p>{error}</p>}
+      
       {flightData && (
         <div>
           <h2>Flight Details:</h2>
@@ -105,7 +120,7 @@ const FlightSearchForm = () => {
           <p><strong>Status:</strong> {flightData.flight_status}</p>
         </div>
       )}
-      
+
       {weatherData && (
         <div>
           <h2>Weather in {weatherData.name}:</h2>
@@ -113,6 +128,13 @@ const FlightSearchForm = () => {
           <p><strong>Weather:</strong> {weatherData.weather[0].description}</p>
           <p><strong>Humidity:</strong> {weatherData.main.humidity}%</p>
           <p><strong>Wind Speed:</strong> {weatherData.wind.speed} m/s</p>
+        </div>
+      )}
+
+      {predictionResult && (
+        <div>
+          <h2>Flight Delay Prediction Result:</h2>
+          <pre>{JSON.stringify(predictionResult, null, 2)}</pre>
         </div>
       )}
     </div>
