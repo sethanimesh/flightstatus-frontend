@@ -30,10 +30,8 @@ const FlightSearchForm = () => {
           const flightInfo = response.data.data[0];  
           setFlightData(flightInfo);
 
-          // Extract the city for weather data (for simplicity, using arrival city)
           console.log(flightInfo);
 
-          // Fetch weather data using the city name
           const weatherResponse = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
             params: {
               appid: process.env.REACT_APP_WEATHER_API_KEY,
@@ -43,11 +41,10 @@ const FlightSearchForm = () => {
           });
           setWeatherData(weatherResponse.data);
 
-          // Now send the POST request for flight delay prediction
           const postData = {
             carrier_code: carrierCode,  
             scheduled_elapsed_time: flightInfo.departure.scheduled_elapsed_time || 120,  
-            delay_weather: 1, // Default value (can be adjusted based on logic)
+            delay_weather: 1, 
             HourlyPrecipitation_x: weatherResponse.data.main.precipitation || 3.16,  
             HourlyWindSpeed_x: weatherResponse.data.wind.speed || 0.99
           };
@@ -122,7 +119,7 @@ const FlightSearchForm = () => {
 
       {weatherData && (
         <div>
-          <h2>Weather in {weatherData.name}:</h2>
+          <h2>Weather:</h2>
           <p><strong>Temperature:</strong> {weatherData.main.temp} °C</p>
           <p><strong>Weather:</strong> {weatherData.weather[0].description}</p>
           <p><strong>Humidity:</strong> {weatherData.main.humidity}%</p>
